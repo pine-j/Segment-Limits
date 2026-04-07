@@ -208,7 +208,7 @@ def confidence_bucket(score: float) -> str:
 
 Pattern: Import `identify_segment_limits` as a module (same approach as `trusted_review_eval.py` line 29-36).
 
-**Inputs**: A CSV with a column containing segment names (e.g., Amy's review sheet `FTW-Segments-Limits-Amy.csv` with its `Readable_SegID` column, or a simple one-column CSV of segment names). The script auto-detects the segment name column. Pass `--all` to run on all segments in the ArcGIS layer instead of a CSV subset.
+**Inputs**: A CSV with a column containing segment names (e.g., Amy's review sheet `FTW-Segments-Limits-Amy.review.csv` with its `Segment` column, or a simple one-column CSV of segment names). The script auto-detects the segment name column. Pass `--all` to run on all segments in the ArcGIS layer instead of a CSV subset.
 
 **Outputs**:
 
@@ -599,7 +599,8 @@ This is the **long-lived learning document** that persists across all pipeline r
 The Orchestrator Agent appends a new section after each run. Structure:
 
 ```markdown
-## Run: 2026-04-07 — 150 segments (FTW-Segments-Limits-Amy.csv)
+<!-- Example output — all counts are derived from the manifest at runtime -->
+## Run: 2026-04-07 — 150 segments (FTW-Segments-Limits-Amy.review.csv)
 
 ### Summary
 - Endpoints evaluated: 304
@@ -642,7 +643,7 @@ The Orchestrator Agent appends a new section after each run. Structure:
   Suggested fix: strengthen inventory-side-matching geometry check.
 
 ### Traceability
-- Input CSV: FTW-Segments-Limits-Amy.csv
+- Input CSV: FTW-Segments-Limits-Amy.review.csv
 - Heuristic results: _temp/visual-review/heuristic-results.csv (captured at run time)
 - Batch results: _temp/visual-review/batch-results/batch-*.json
 - Script version: git commit [hash at run time]
@@ -803,11 +804,12 @@ When the user provides the exported notes JSON from the dashboard:
 3. Update `verification-log.md` with the human reviewer's observations
 4. Identify cases where the human disagrees with the Orchestrator's decision
 5. Suggest specific heuristic improvements based on the human's input
-6. **If the user requests adjudicated output**: Use the LLM to apply the reviewer's
-   overrides (cases marked "Disagree" with corrective notes) to the Phase 4 CSVs
-   and produce `_temp/visual-review/human-reviewed-segment-limits.csv` and a
-   regenerated collapsed CSV. The LLM reads the reviewer's notes, determines the
-   correct final limit for each overridden endpoint, and writes the updated rows.
+6. **If the user requests adjudicated output**: Apply the reviewer's structured
+   overrides (cases marked "Disagree" with `reviewer_corrected_limit`,
+   `reviewer_corrected_alias`, and `reviewer_county_boundary_at_endpoint` fields)
+   to the Phase 4 CSVs and produce `_temp/visual-review/human-reviewed-segment-limits.csv`
+   and a regenerated collapsed CSV. If any "Disagree" case is missing a
+   `reviewer_corrected_limit`, flag it and ask the user to fill in the field.
    This step is only performed on explicit user request — the Phase 4 outputs
    remain the default authoritative deliverables.
 
@@ -958,7 +960,10 @@ Reads `final-segment-limits.csv`, `heuristic-results.csv`, `batch-results/*.json
         "piece": null,
         "resolution": "visual_preferred",
         "reviewer_status": "agree",
-        "reviewer_notes": "Confirmed: Walnut St is clearly visible at endpoint, BU 81D shield is 150m away"
+        "reviewer_notes": "Confirmed: Walnut St is clearly visible at endpoint, BU 81D shield is 150m away",
+        "reviewer_corrected_limit": null,
+        "reviewer_corrected_alias": null,
+        "reviewer_county_boundary_at_endpoint": null
       },
       ...
     ]
@@ -1009,7 +1014,8 @@ The map iframe uses the hosted web app URL. Cross-origin restrictions **will** b
 
 ### Why a single HTML file
 
-- No `npm install`, no build, no server — just open the file
+- No `npm install`, no build — just open the file for review with manual map navigation (fallback mode)
+- For auto-navigation of the embedded map, serve both dashboard and web app from the same origin (e.g., serve the repo root with `python -m http.server 8080` so both `/Web-App/` and `/_temp/visual-review/review-dashboard.html` are on `localhost:8080`)
 - Works offline (except the map iframe, which needs network)
 - Portable — can be emailed, shared, or archived
 - `localStorage` persists notes across sessions without any backend

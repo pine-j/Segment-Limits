@@ -106,10 +106,11 @@ Screenshot lifecycle: do NOT delete until after human review (Phase 8), or immed
 When the user provides the exported reviewer notes JSON and requests adjudicated output, the Orchestrator uses the LLM to:
 
 1. Read `final-segment-limits.csv` and the reviewer's exported JSON
-2. For each endpoint where the reviewer marked "Disagree" with corrective notes, determine the reviewer's intended final limit from their notes
-3. Produce `_temp/visual-review/human-reviewed-segment-limits.csv` — same schema as `final-segment-limits.csv` but with overridden rows updated (Resolution set to `human_override`, Final-Limit set to reviewer's correction)
-4. Regenerate a collapsed CSV: `_temp/visual-review/human-reviewed-segment-limits-collapsed.csv`
-5. Append a "Human Review" section to `verification-log.md` summarizing which endpoints were overridden and why
+2. For each endpoint where the reviewer marked "Disagree", read the structured override fields (`reviewer_corrected_limit`, `reviewer_corrected_alias`, `reviewer_county_boundary_at_endpoint`) — these provide the reviewer's intended correction without free-text inference
+3. If any "Disagree" case is missing a `reviewer_corrected_limit`, flag it and ask the user to fill in the structured field before generating output
+4. Produce `_temp/visual-review/human-reviewed-segment-limits.csv` — same schema as `final-segment-limits.csv` but with overridden rows updated (Resolution set to `human_override`, Final-Limit set to `reviewer_corrected_limit`)
+5. Regenerate a collapsed CSV: `_temp/visual-review/human-reviewed-segment-limits-collapsed.csv`
+6. Append a "Human Review" section to `verification-log.md` summarizing which endpoints were overridden and why
 
 This step is only performed on explicit user request. The Phase 4 outputs (`final-segment-limits.csv` and `final-segment-limits-collapsed.csv`) remain the default authoritative deliverables.
 
@@ -122,10 +123,10 @@ Create this file at the repo root. It is **NEVER deleted**.
 The Orchestrator appends a timestamped section after each run:
 
 ```markdown
-## Run: 2026-04-07 — 150 segments (FTW-Segments-Limits-Amy.csv)
+## Run: 2026-04-07 — 150 segments (FTW-Segments-Limits-Amy.review.csv)
 
 ### Summary
-- Endpoints evaluated: 304
+- Endpoints evaluated: {N} (derived from manifest)
 - Confirmed (heuristic + visual agree): 265 (87.2%)
 - Enriched (visual added alias): 8
 - Visual preferred (visual overrode heuristic): 19
@@ -152,7 +153,7 @@ The Orchestrator appends a timestamped section after each run:
   Suggested fix: increase local label weight when distance < 60m.
 
 ### Traceability
-- Input CSV: FTW-Segments-Limits-Amy.csv
+- Input CSV: FTW-Segments-Limits-Amy.review.csv
 - Script version: git commit [hash]
 ```
 

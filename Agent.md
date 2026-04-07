@@ -14,12 +14,12 @@
 
 ## Hybrid Visual Verification Pipeline
 
-- The master plan and sub-plans are in `plans/`:
-  - `plans/master-plan.md` — Full architecture, data schemas, agent roles, reconciliation logic, dashboard spec
-  - `plans/plan-1-infrastructure.md` — Heuristic enhancement + manifest + prompt generation (Tasks A–E)
-  - `plans/plan-2-reconciliation-orchestrator.md` — Reconciliation + orchestrator + verification log (Tasks F–G)
-  - `plans/plan-3-review-dashboard.md` — Human review dashboard (Task H)
-- `verification-log.md` (once created) is the persistent learning document — NEVER delete it.
+- The master plan and sub-plans are in `Project-Plan/`:
+  - `Project-Plan/master-plan.md` - Full architecture, data schemas, agent roles, reconciliation logic, dashboard spec
+  - `Project-Plan/plan-1-infrastructure.md` - Heuristic enhancement + manifest + prompt generation (Tasks A-E)
+  - `Project-Plan/plan-2-reconciliation-orchestrator.md` - Reconciliation + orchestrator + verification log (Tasks F-G)
+  - `Project-Plan/plan-3-review-dashboard.md` - Human review dashboard (Task H)
+- `verification-log.md` (once created) is the persistent learning document - NEVER delete it.
 
 ## Temporary Artifact Cleanup
 
@@ -30,16 +30,16 @@
 
 ## Project Structure
 
-- `Scripts/identify_segment_limits.py` — ArcGIS/TxDOT-driven segment limit inference script and heuristic engine
-- `Scripts/trusted_review_eval.py` — Accuracy/evaluation harness for comparing current heuristics against Amy's review sheet
-- `SEGMENT_LIMITS_LOGIC.md` — Detailed explanation of the current segment endpoint heuristics, candidate selection rules, and confidence model
-- `SEGMENT_LIMITS_CASE_STUDY.md` — Narrative background, workflow evolution, and rationale
-- `FTW-Segments-Limits-Amy.review.csv` — Current working review sheet with Amy's From/To values and segment metadata
-- `FTW-TxDOT-Labels/` — Local TxDOT label vector tile cache plus `.missing` marker files
-- `FTW-Roadway-Inventory/` — Local TxDOT roadway inventory subset used by the limit script
-- `Web-App/` — Static ArcGIS explorer for segment inspection and roadway-name click queries
-- `plans/` — Hybrid visual verification pipeline plans (master + 3 sub-plans)
-- `_temp/` — Conventional scratch location for evaluator outputs and visual-review artifacts; create as needed
+- `Scripts/identify_segment_limits.py` - ArcGIS/TxDOT-driven segment limit inference script and heuristic engine
+- `Scripts/trusted_review_eval.py` - Accuracy/evaluation harness for comparing current heuristics against Amy's review sheet
+- `SEGMENT_LIMITS_LOGIC.md` - Detailed explanation of the current segment endpoint heuristics, candidate selection rules, and confidence model
+- `SEGMENT_LIMITS_CASE_STUDY.md` - Narrative background, workflow evolution, and rationale
+- `FTW-Segments-Limits-Amy.review.csv` - Current working review sheet with Amy's From/To values and segment metadata
+- `FTW-TxDOT-Labels/` - Local TxDOT label vector tile cache plus `.missing` marker files
+- `FTW-Roadway-Inventory/` - Local TxDOT roadway inventory subset used by the limit script
+- `Web-App/` - Static ArcGIS explorer for segment inspection and roadway-name click queries
+- `Project-Plan/` - Hybrid visual verification pipeline plans (master + 3 sub-plans)
+- `_temp/` - Conventional scratch location for evaluator outputs and visual-review artifacts; create as needed
 
 ## Tech Stack
 

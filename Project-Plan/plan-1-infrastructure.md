@@ -137,7 +137,7 @@ Key details:
 
 Import `identify_segment_limits` as module (follow `trusted_review_eval.py` pattern, line 29-36).
 
-**Inputs**: A CSV with a column containing segment names (e.g., Amy's review sheet `FTW-Segments-Limits-Amy.csv` with its `Readable_SegID` column, or a simple one-column CSV of segment names). The script auto-detects the segment name column. Pass `--all` to run on all segments in the ArcGIS layer instead of a CSV subset.
+**Inputs**: A CSV with a column containing segment names (e.g., Amy's review sheet `FTW-Segments-Limits-Amy.review.csv` with its `Segment` column, or a simple one-column CSV of segment names). The script auto-detects the segment name column. Pass `--all` to run on all segments in the ArcGIS layer instead of a CSV subset.
 
 **Outputs**:
 

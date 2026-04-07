@@ -91,6 +91,11 @@ Click any row to switch to case view.
 **Per-case reviewer notes**:
 - Textarea for free-form notes on each endpoint
 - Radio buttons: Not reviewed / Agree / Disagree / Needs discussion
+- **Structured override fields** (shown only when status is "Disagree"):
+  - `Corrected limit` — text input for the reviewer's corrected road/boundary name
+  - `Corrected alias` — optional text input for a local alias name
+  - `County boundary at endpoint` — checkbox (true if the endpoint IS a county line)
+  These structured fields feed directly into adjudicated CSV generation (Phase 7), avoiding free-text inference by the LLM.
 - Auto-saved to `localStorage` on every keystroke
 - **Fully editable at any time** — reviewer can go back to any case, edit notes, change status. Nothing is locked until export.
 - Survives page refreshes and browser restarts
@@ -108,7 +113,10 @@ Click any row to switch to case view.
         "piece": null,
         "resolution": "visual_preferred",
         "reviewer_status": "agree",
-        "reviewer_notes": "Confirmed: Walnut St clearly visible"
+        "reviewer_notes": "Confirmed: Walnut St clearly visible",
+        "reviewer_corrected_limit": null,
+        "reviewer_corrected_alias": null,
+        "reviewer_county_boundary_at_endpoint": null
       }
     ]
   }
@@ -155,7 +163,8 @@ const REVIEW_DATA = [
 
 - Screenshots via **relative paths** — HTML lives in `_temp/visual-review/` alongside `screenshots/`
 - Keeps HTML small (~200KB) while supporting 600+ screenshots
-- No npm, no build, no server — just open the file
+- No npm, no build — just open the file for review with manual map navigation (fallback mode)
+- For auto-navigation of the embedded map, serve both dashboard and web app from the same origin (e.g., serve the repo root with `python -m http.server 8080` so both `/Web-App/` and `/_temp/visual-review/review-dashboard.html` are on `localhost:8080`)
 - Works offline (except map iframe)
 - Portable — can be emailed, shared, archived
 
