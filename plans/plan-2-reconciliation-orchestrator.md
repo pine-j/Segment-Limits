@@ -103,9 +103,9 @@ Screenshot lifecycle: do NOT delete until after human review (Phase 8).
 
 ---
 
-## Verification Log: `Segment-Limits/verification-log.md`
+## Verification Log: `verification-log.md`
 
-Create this file at `Segment-Limits/` root. It is **NEVER deleted**.
+Create this file at the repo root. It is **NEVER deleted**.
 
 The Orchestrator appends a timestamped section after each run:
 

@@ -56,7 +56,7 @@ Click any row to switch to case view.
 │  └─────────────────────────────────────────────────────────────┘   │
 │                                                                     │
 │  ┌─── Interactive Map ─────────────────────────────────────────┐   │
-│  │  (iframe: pine-j.github.io/Segment-Limits/)                │   │
+│  │  (iframe: pine-j.github.io/Roadway-Segment-Limits/)                │   │
 │  │  Auto-navigated to this endpoint's coordinates              │   │
 │  │  Human can zoom in/out, click around                        │   │
 │  └─────────────────────────────────────────────────────────────┘   │
@@ -79,7 +79,7 @@ Click any row to switch to case view.
 - Progress indicator: "Reviewed 42 of 304 endpoints"
 
 **Interactive map embed**:
-- iframe pointing to `https://pine-j.github.io/Segment-Limits/`
+- iframe pointing to `https://pine-j.github.io/Roadway-Segment-Limits/`
 - When switching cases, call into the iframe:
   ```javascript
   iframe.contentWindow.__selectAndZoomSegment("FM 730-A");

@@ -97,7 +97,7 @@ This pipeline uses multiple AI agents with **isolated contexts** to ensure indep
 
 ### `_temp/visual-review/` directory structure
 
-All intermediate and temporary files live under `Segment-Limits/_temp/visual-review/`:
+All intermediate and temporary files live under `_temp/visual-review/`:
 
 ```
 _temp/visual-review/
@@ -148,7 +148,7 @@ This prevents stale files from a crashed/incomplete previous run from accumulati
 
 ## Step 1: Enhance `identify_segment_limits.py`
 
-**File**: `Segment-Limits/Scripts/identify_segment_limits.py`
+**File**: `Scripts/identify_segment_limits.py`
 
 ### 1a. Add endpoint coordinates and confidence to `RowProcessingResult` (line 308):
 
@@ -209,7 +209,7 @@ def confidence_bucket(score: float) -> str:
 
 ## Step 2: Create `generate_visual_review_manifest.py`
 
-**File**: `Segment-Limits/Scripts/generate_visual_review_manifest.py`
+**File**: `Scripts/generate_visual_review_manifest.py`
 
 Pattern: Import `identify_segment_limits` as a module (same approach as `trusted_review_eval.py` line 29-36).
 
@@ -272,7 +272,7 @@ The manifest tells the Visual Review Agent a segment has gaps and how many piece
 
 ## Step 3: Create `generate_visual_review_prompts.py`
 
-**File**: `Segment-Limits/Scripts/generate_visual_review_prompts.py`
+**File**: `Scripts/generate_visual_review_prompts.py`
 
 Reads `visual-review-manifest.json` and generates batch prompt files (~15 endpoints per batch, covering ~8 segments with both From/To).
 
@@ -297,9 +297,9 @@ Your assessment must come purely from visual map reading, not data queries.
 
 ## Web App
 
-- **Primary**: https://pine-j.github.io/Segment-Limits/
-- **Fallback (local)**: Serve `Segment-Limits/Web-App/` locally 
-  (e.g., `npx http-server Segment-Limits/Web-App -p 8080`) and use 
+- **Primary**: https://pine-j.github.io/Roadway-Segment-Limits/
+- **Fallback (local)**: Serve `Web-App/` locally 
+  (e.g., `npx http-server Web-App -p 8080`) and use 
   `http://localhost:8080` if GitHub Pages is down or slow.
 
 Use the primary URL by default. Switch to local only if the page fails to load.
@@ -477,7 +477,7 @@ When the Visual Review Agent disagrees with the heuristic, the reconciliation sc
 
 ## Step 4: Expose programmatic API in Web App
 
-**File**: `Segment-Limits/Web-App/app.js`
+**File**: `Web-App/app.js`
 
 Expose both the map view AND segment selection/highlight so Playwright can drive everything programmatically:
 
@@ -536,7 +536,7 @@ This eliminates the search/checkbox/zoom UI interaction entirely. Estimated per-
 
 ## Step 5: Create `reconcile_results.py`
 
-**File**: `Segment-Limits/Scripts/reconcile_results.py`
+**File**: `Scripts/reconcile_results.py`
 
 Reads both `heuristic-results.csv` and all `batch-NN-results.json` files. JSON output from Visual Review Agents is parsed deterministically — no prose parsing needed.
 
@@ -595,9 +595,9 @@ For gap segments, `Final-From` = first piece's From, `Final-To` = last piece's T
 
 This gives both views: the audit table for debugging, and the collapsed table for delivery.
 
-### Persistent output: `Segment-Limits/verification-log.md` (NEVER deleted)
+### Persistent output: `verification-log.md` (NEVER deleted)
 
-This is the **long-lived learning document** that persists across all pipeline runs. Unlike everything in `_temp/`, this file lives at the `Segment-Limits/` root and is **never cleaned up**. It captures what the hybrid pipeline learns each time it runs, building a history that drives heuristic model improvements over time.
+This is the **long-lived learning document** that persists across all pipeline runs. Unlike everything in `_temp/`, this file lives at the repo root and is **never cleaned up**. It captures what the hybrid pipeline learns each time it runs, building a history that drives heuristic model improvements over time.
 
 The Orchestrator Agent appends a new section after each run. Structure:
 
@@ -666,7 +666,7 @@ The `reconcile_results.py` script generates the raw data (disagreement rows, cou
 
 ## Step 6: Create Master Orchestrator Prompt
 
-**File**: `Segment-Limits/orchestrator.md`
+**File**: `orchestrator.md`
 
 This is the master prompt for the Orchestrator Agent. It reads this, understands the full context, and drives the entire pipeline — dispatching the Heuristic Agent, spawning Visual Review Agents for each batch, running reconciliation, and reporting results. No human confirmation is needed between phases.
 
@@ -724,7 +724,7 @@ may cause agents to confuse old results with new ones.
 ### Phase 1: Dispatch Heuristic Agent
 Spawn the Heuristic Agent (lighter model) with instructions to run:
 ```bash
-cd Segment-Limits
+cd Roadway-Segment-Limits
 python Scripts/generate_visual_review_manifest.py --input <segments-csv>
 ```
 It produces:
@@ -771,7 +771,7 @@ This merges heuristic + visual results into:
    - How many visual_preferred (visual overrode heuristic)
    - How many conflicts (flagged for human review)
 
-2. **Append a new timestamped section to `Segment-Limits/verification-log.md`**:
+2. **Append a new timestamped section to `verification-log.md`**:
    - Summary counts
    - Full disagreement table (every endpoint where Resolution != confirmed)
    - Conflict table (unresolved cases)
@@ -819,18 +819,18 @@ for a fresh start next run.
 **Important**: Do NOT delete screenshots until AFTER the human has finished 
 reviewing the dashboard — the dashboard references them via relative paths.
 
-**NEVER delete `Segment-Limits/verification-log.md`** — it lives outside `_temp/` 
+**NEVER delete `verification-log.md`** — it lives outside `_temp/` 
 and persists across all runs. This is the long-term learning document.
 
 ## Key files
-- `Segment-Limits/Scripts/identify_segment_limits.py` — heuristic engine
-- `Segment-Limits/Scripts/generate_visual_review_manifest.py` — Phase 1
-- `Segment-Limits/Scripts/generate_visual_review_prompts.py` — Phase 2
-- `Segment-Limits/Scripts/reconcile_results.py` — Phase 4
-- `Segment-Limits/Scripts/generate_review_dashboard.py` — Phase 6
-- `Segment-Limits/verification-log.md` — persistent learning log (NEVER deleted)
-- `Segment-Limits/Web-App/` — map app (hosted at pine-j.github.io/Segment-Limits/)
-- `Segment-Limits/SEGMENT_LIMITS_LOGIC.md` — heuristic documentation
+- `Scripts/identify_segment_limits.py` — heuristic engine
+- `Scripts/generate_visual_review_manifest.py` — Phase 1
+- `Scripts/generate_visual_review_prompts.py` — Phase 2
+- `Scripts/reconcile_results.py` — Phase 4
+- `Scripts/generate_review_dashboard.py` — Phase 6
+- `verification-log.md` — persistent learning log (NEVER deleted)
+- `Web-App/` — map app (hosted at pine-j.github.io/Roadway-Segment-Limits/)
+- `SEGMENT_LIMITS_LOGIC.md` — heuristic documentation
 
 ## What Visual Review Agents should look for (embedded in batch prompts)
 - ALL visible road labels and route shields near the endpoint
@@ -846,7 +846,7 @@ and persists across all runs. This is the long-term learning document.
 
 ## Step 7: Create Review Dashboard Generator
 
-**File**: `Segment-Limits/Scripts/generate_review_dashboard.py`
+**File**: `Scripts/generate_review_dashboard.py`
 
 Reads `final-segment-limits.csv`, `heuristic-results.csv`, `batch-results/*.json`, and generates a single self-contained `review-dashboard.html` file that the human reviewer opens in a browser.
 
@@ -896,7 +896,7 @@ Reads `final-segment-limits.csv`, `heuristic-results.csv`, `batch-results/*.json
 │                                                                     │
 │  ┌─── Interactive Map ─────────────────────────────────────────┐   │
 │  │                                                             │   │
-│  │  (iframe: pine-j.github.io/Segment-Limits/)                │   │
+│  │  (iframe: pine-j.github.io/Roadway-Segment-Limits/)                │   │
 │  │  Auto-navigated to this endpoint's coordinates              │   │
 │  │  Human can zoom in/out, click around                        │   │
 │  │                                                             │   │
@@ -923,7 +923,7 @@ Reads `final-segment-limits.csv`, `heuristic-results.csv`, `batch-results/*.json
 - Progress indicator: "Reviewed 42 of 304 endpoints"
 
 **Interactive map embed**:
-- iframe pointing to `https://pine-j.github.io/Segment-Limits/`
+- iframe pointing to `https://pine-j.github.io/Roadway-Segment-Limits/`
 - When switching cases, the dashboard calls into the iframe:
   ```javascript
   iframe.contentWindow.__selectAndZoomSegment("FM 730-A");
@@ -1014,15 +1014,15 @@ The map iframe uses the hosted web app URL. Cross-origin restrictions may preven
 
 | Action | File | What |
 |--------|------|------|
-| Modify | `Segment-Limits/Scripts/identify_segment_limits.py` | Add coords, confidence, gap_piece_endpoints to RowProcessingResult |
-| Modify | `Segment-Limits/Web-App/app.js` | Add `window.__mapView`, `window.__waitForSegments()`, and `window.__selectAndZoomSegment()` programmatic API |
-| Modify | `Segment-Limits/Scripts/trusted_review_eval.py` | Stop skipping gap segments (line 83-86); evaluate overall From/To (first piece's From, last piece's To) against Amy's From/To |
-| Create | `Segment-Limits/Scripts/generate_visual_review_manifest.py` | Heuristic runner + manifest generator (gap-aware) |
-| Create | `Segment-Limits/Scripts/generate_visual_review_prompts.py` | Batch prompt file generator (gap-aware) |
-| Create | `Segment-Limits/Scripts/reconcile_results.py` | Merge heuristic + visual results (gap-aware) |
-| Create | `Segment-Limits/Scripts/generate_review_dashboard.py` | Generates review-dashboard.html from reconciliation results |
-| Create | `Segment-Limits/orchestrator.md` | Master prompt — hand this to the Orchestrator Agent to drive everything |
-| Create | `Segment-Limits/verification-log.md` | Persistent learning log — Orchestrator appends after each run, NEVER deleted |
+| Modify | `Scripts/identify_segment_limits.py` | Add coords, confidence, gap_piece_endpoints to RowProcessingResult |
+| Modify | `Web-App/app.js` | Add `window.__mapView`, `window.__waitForSegments()`, and `window.__selectAndZoomSegment()` programmatic API |
+| Modify | `Scripts/trusted_review_eval.py` | Stop skipping gap segments (line 83-86); evaluate overall From/To (first piece's From, last piece's To) against Amy's From/To |
+| Create | `Scripts/generate_visual_review_manifest.py` | Heuristic runner + manifest generator (gap-aware) |
+| Create | `Scripts/generate_visual_review_prompts.py` | Batch prompt file generator (gap-aware) |
+| Create | `Scripts/reconcile_results.py` | Merge heuristic + visual results (gap-aware) |
+| Create | `Scripts/generate_review_dashboard.py` | Generates review-dashboard.html from reconciliation results |
+| Create | `orchestrator.md` | Master prompt — hand this to the Orchestrator Agent to drive everything |
+| Create | `verification-log.md` | Persistent learning log — Orchestrator appends after each run, NEVER deleted |
 
 ---
 
@@ -1132,25 +1132,25 @@ Build this plan using the task graph below. **Use sub-agents for independent tas
 ### Parallel execution plan
 
 **Wave 1** (3 sub-agents in parallel — no dependencies between them):
-- **Sub-agent 1: Task A** — Modify `Segment-Limits/Scripts/identify_segment_limits.py`
+- **Sub-agent 1: Task A** — Modify `Scripts/identify_segment_limits.py`
   - Add `from_endpoint_wgs84`, `to_endpoint_wgs84`, `confidence_from`, `confidence_to`, `gap_piece_endpoints` to `RowProcessingResult` (line 308)
   - Thread existing `start_endpoint_wgs84`/`end_endpoint_wgs84` and `LimitCandidate.confidence` through to the result in `process_request_row()` for both continuous (line 3933+) and gap (line 3826+) paths
   - Add `confidence_bucket()` helper
   - Use 1-based piece indexing
   - **Do NOT change any heuristic logic** — only add data passthrough
 
-- **Sub-agent 2: Task B** — Modify `Segment-Limits/Web-App/app.js`
+- **Sub-agent 2: Task B** — Modify `Web-App/app.js`
   - Add `window.__mapView = view;` after line 121
   - Add `window.__waitForSegments()` — polls `state.segments.length` inside the `require()` closure, returns a Promise
   - Add `window.__selectAndZoomSegment(segmentName)` — finds by `s.label`, clears selection, adds objectId, calls `render()`, `syncSelectedGraphics()`, `zoomToSegments()`
   - All three must be defined inside the `require()` callback where `state`, `render`, `syncSelectedGraphics`, `zoomToSegments` are in scope
 
-- **Sub-agent 3: Task C** — Modify `Segment-Limits/Scripts/trusted_review_eval.py`
+- **Sub-agent 3: Task C** — Modify `Scripts/trusted_review_eval.py`
   - Remove the gap segment skip at line 83-86
   - For gap segments, evaluate only the overall From (first piece's From) and To (last piece's To) against Amy's values — the script already outputs these as `auto_from`/`auto_to`
 
 **Wave 2** (after Wave 1 completes — needs Task A's RowProcessingResult changes):
-- **Sub-agent 4: Task D** — Create `Segment-Limits/Scripts/generate_visual_review_manifest.py`
+- **Sub-agent 4: Task D** — Create `Scripts/generate_visual_review_manifest.py`
   - Import `identify_segment_limits` as module (follow `trusted_review_eval.py` pattern, line 29-36)
   - Run heuristic pipeline on input CSV
   - Output `_temp/visual-review/heuristic-results.csv` (with Segment, Direction, Type, Side, Piece, Auto-Limit, Heuristic, Confidence, Confidence-Bucket, Lon, Lat)
@@ -1159,14 +1159,14 @@ Build this plan using the task graph below. **Use sub-agents for independent tas
 
 **Wave 3** (after Wave 2 — needs manifest schema from Task D):
 - **Sub-agent 5: Tasks E + F** — Create both prompt generator and reconciler
-  - `Segment-Limits/Scripts/generate_visual_review_prompts.py` — reads manifest JSON, generates `_temp/visual-review/batch-prompts/batch-NN.md` files (~15 endpoints per batch). Embed the full batch prompt template from this plan (browser setup, visual-only rules, workflow, JSON output schema)
-  - `Segment-Limits/Scripts/reconcile_results.py` — reads `heuristic-results.csv` + `batch-results/batch-NN-results.json` files. Implements the comparison logic table, confidence mapping (high=0.90, medium=0.70, low=0.50), disagreement categorization. Outputs both `final-segment-limits.csv` (endpoint-level) and `final-segment-limits-collapsed.csv` (one row per segment). Uses `canonical()` from `identify_segment_limits.py` for road name comparison.
+  - `Scripts/generate_visual_review_prompts.py` — reads manifest JSON, generates `_temp/visual-review/batch-prompts/batch-NN.md` files (~15 endpoints per batch). Embed the full batch prompt template from this plan (browser setup, visual-only rules, workflow, JSON output schema)
+  - `Scripts/reconcile_results.py` — reads `heuristic-results.csv` + `batch-results/batch-NN-results.json` files. Implements the comparison logic table, confidence mapping (high=0.90, medium=0.70, low=0.50), disagreement categorization. Outputs both `final-segment-limits.csv` (endpoint-level) and `final-segment-limits-collapsed.csv` (one row per segment). Uses `canonical()` from `identify_segment_limits.py` for road name comparison.
 
 **Wave 4** (after Wave 3 — needs all schemas finalized, 2 sub-agents in parallel):
-- **Sub-agent 6: Task G** — Create `Segment-Limits/orchestrator.md`
+- **Sub-agent 6: Task G** — Create `orchestrator.md`
   - The master prompt content is already written in Step 6 of this plan — extract it, add Phase 0 (pre-flight cleanup) through Phase 8 (cleanup), reference the correct file paths
 
-- **Sub-agent 7: Task H** — Create `Segment-Limits/Scripts/generate_review_dashboard.py`
+- **Sub-agent 7: Task H** — Create `Scripts/generate_review_dashboard.py`
   - Reads `final-segment-limits.csv`, `heuristic-results.csv`, `batch-results/*.json`
   - Generates a single self-contained `_temp/visual-review/review-dashboard.html`
   - Embeds all review data as a JSON payload in a `<script>` tag
