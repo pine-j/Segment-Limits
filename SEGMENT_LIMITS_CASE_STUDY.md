@@ -25,7 +25,10 @@ Before building the automation, I had already developed an ArcGIS dashboard for 
 
 `https://jacobs.maps.arcgis.com/apps/dashboards/34e1981ba2124c6a918e9810598efe1c`
 
-That dashboard was useful for general review, but it had a major limitation: Amy could not click on the road network at a segment endpoint and confidently determine the exact roadway name or highway designation that should anchor the limit.
+That dashboard was useful for general review, but it had a major limitation:
+Amy could not inspect the road network at a segment endpoint in a way that let
+her confidently determine the exact roadway name or highway designation that
+should anchor the limit.
 
 We could see route shields and other visual cues, but that was not enough. In many of the hard cases, the real question was not just "what road is near this endpoint?" The real question was "what is the exact designation of that road?" A shield alone can still leave ambiguity:
 
@@ -48,19 +51,30 @@ So the first blocker was not the heuristics. The first blocker was observability
 
 ## The first real step: build a better inspection surface
 
-To fix that, I built a custom web map in `Segment-Limits/Web-App/`.
+To fix that, I built a custom web map in `Web-App/`.
 
 I designed it to combine:
 
 - the `FTW_Segmentation_Master` layer
 - TxDOT's statewide planning basemap
-- a TxDOT roadway layer that could be queried by clicking near a segment endpoint
+- a TxDOT roadway layer that could be queried manually by clicking near a
+  segment endpoint
 
 That web app ended up being important in two separate ways.
 
-First, it gave Amy a much better manual verification tool. She could search for a segment, zoom directly to it, inspect both endpoints, and click nearby roads to see what TxDOT considered the roadway name or route designation.
+First, it gave Amy a much better manual verification tool. She could search for
+a segment, zoom directly to it, inspect both endpoints, and manually click
+nearby roads to see what TxDOT considered the roadway name or route designation.
 
-Second, it gave me a stable interface for verification through Playwright MCP. In this workflow, I used Playwright MCP as the browser automation and inspection layer, which let me open the map, zoom to endpoints, inspect labels, and capture evidence in the same app the human reviewer was using. That let me build a workflow where manual review and automated verification were looking at the same evidence surface instead of two disconnected systems.
+Second, it gave me a stable interface for verification through Playwright MCP.
+In this workflow, I used Playwright MCP as the browser automation and inspection
+layer, which let me open the map, zoom to endpoints, inspect labels, and capture
+evidence in the same app the human reviewer was using. Later, that verification
+workflow became intentionally visual-only: the automated pass reads rendered
+basemap labels and route shields, but does not click roadway popups or inspect
+service data. That let me build a workflow where manual review and automated
+verification were looking at the same evidence surface instead of two
+disconnected systems.
 
 This was a major shift in the project. I was no longer trying to automate a poorly observable problem. I had created a map experience that exposed the problem clearly enough to support both people and automation.
 
@@ -68,7 +82,7 @@ This was a major shift in the project. I was no longer trying to automate a poor
 
 From the beginning, I did not want the browser to become the primary engine. I wanted the main system to stay deterministic and data-driven.
 
-So I built `Segment-Limits/Scripts/identify_segment_limits.py` as a data-first script. The script pulls from multiple sources:
+So I built `Scripts/identify_segment_limits.py` as a data-first script. The script pulls from multiple sources:
 
 - segment geometry from `FTW_Segmentation_Master`
 - county boundaries from the Texas county layer
@@ -302,9 +316,15 @@ All scores are clamped to [0.50, 0.98] — the script never claims absolute cert
 
 ### Why this matters for the hybrid workflow
 
-The confidence score is what makes the planned hybrid visual verification workflow possible. When the script reports a high-confidence endpoint (>= 0.90), visual verification is likely to confirm it. When confidence is low (< 0.78), that's a signal that visual verification is most likely to add value — those are the cases where the data sources disagree, the crossing angle is ambiguous, or the nearest road label is far from the endpoint.
+The confidence score is what makes the hybrid visual verification workflow
+possible. When the script reports a high-confidence endpoint (>= 0.90), visual
+verification is likely to confirm it. When confidence is low (< 0.78), that's a
+signal that visual verification is most likely to add value - those are the
+cases where the data sources disagree, the crossing angle is ambiguous, or the
+nearest road label is far from the endpoint.
 
-The full confidence scoring details are documented in [`SEGMENT_LIMITS_LOGIC.md`](d:/Jacobs/FTW_Stakeholder_Maps/Segment-Limits/SEGMENT_LIMITS_LOGIC.md#confidence-model).
+The full confidence scoring details are documented in
+[`SEGMENT_LIMITS_LOGIC.md`](SEGMENT_LIMITS_LOGIC.md#confidence-model).
 
 ## What this project taught me
 
@@ -447,6 +467,34 @@ Results from the re-verification of 37 disputed cases:
 | offset_different | 2 | 0 | — |
 
 The remaining offset_missing cases (mostly IH 35W corridor) require a new heuristic for freeway mid-segment endpoints where the gold road is not in the candidate pool at the endpoint location.
+
+## Current pipeline state (2026-04)
+
+The project is no longer just a script plus ad hoc verification. It now has a
+formal two-pass pipeline:
+
+1. The heuristic pass runs
+   [`Scripts/identify_segment_limits.py`](Scripts/identify_segment_limits.py)
+   through
+   [`Scripts/generate_visual_review_manifest.py`](Scripts/generate_visual_review_manifest.py)
+   and emits endpoint-level heuristic rows with coordinates, heuristic labels,
+   confidence scores, and gap-piece detail.
+2. The manifest is turned into batch prompts by
+   [`Scripts/generate_visual_review_prompts.py`](Scripts/generate_visual_review_prompts.py).
+3. Independent Visual Review Agents inspect only the rendered map and write
+   structured JSON results for each endpoint.
+4. [`Scripts/reconcile_results.py`](Scripts/reconcile_results.py) merges the
+   heuristic and visual passes into:
+   - `_temp/visual-review/final-segment-limits.csv`
+   - `_temp/visual-review/final-segment-limits-collapsed.csv`
+5. [orchestrator.md](orchestrator.md) defines the end-to-end workflow, including
+   resumability, verification logging, optional dashboard generation, and
+   optional human-reviewed adjudication.
+
+That matters because the project has shifted from "heuristic script with manual
+spot checks" to "deterministic first pass plus independent visual arbitration."
+The anti-bias constraint is architectural now: Visual Review Agents do not see
+the heuristic answers before producing their own result.
 
 ## What this phase taught me
 

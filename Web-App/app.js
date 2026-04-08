@@ -122,6 +122,8 @@ require([
     },
   });
 
+  window.__mapView = view;
+
   view.ui.add(new Home({ view }), "top-left");
 
   const layerList = new LayerList({
@@ -576,6 +578,34 @@ require([
       });
     }
   }
+
+  window.__waitForSegments = function () {
+    return view.when().then(() => {
+      return new Promise((resolve) => {
+        const check = () => {
+          if (state.segments && state.segments.length > 0 && !view.updating) {
+            resolve(state.segments.length);
+          } else {
+            setTimeout(check, 500);
+          }
+        };
+        check();
+      });
+    });
+  };
+
+  window.__selectAndZoomSegment = async function (segmentName) {
+    const match = state.segments.find((segment) => segment.label === segmentName);
+    if (!match) {
+      return false;
+    }
+    state.selectedSegmentIds.clear();
+    state.selectedSegmentIds.add(match.objectId);
+    render();
+    await syncSelectedGraphics();
+    await zoomToSegments([match.objectId]);
+    return true;
+  };
 
   function dedupeRoadResults(features) {
     const items = [];

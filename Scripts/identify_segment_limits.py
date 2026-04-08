@@ -320,12 +320,29 @@ class RowProcessingResult:
     status: str
     note: str
     processing_time_s: float
+    from_endpoint_wgs84: tuple[float, float] | None = None
+    to_endpoint_wgs84: tuple[float, float] | None = None
+    confidence_from: float = 0.0
+    confidence_to: float = 0.0
+    gap_piece_endpoints: list[dict[str, object]] | None = None
 
 
 def safe_text(value: object) -> str:
     if value is None or pd.isna(value):
         return ""
     return str(value)
+
+
+def point_to_lon_lat(point: Point) -> tuple[float, float]:
+    return (float(point.x), float(point.y))
+
+
+def confidence_bucket(score: float) -> str:
+    if score >= 0.90:
+        return "high"
+    if score >= 0.78:
+        return "medium"
+    return "low"
 
 
 def query_arcgis_geojson(
@@ -3850,7 +3867,10 @@ def process_request_row(
         piece_tos: list[str] = []
         piece_heuristic_froms: list[str] = []
         piece_heuristic_tos: list[str] = []
+        piece_confidence_froms: list[float] = []
+        piece_confidence_tos: list[float] = []
         piece_notes: list[str] = []
+        gap_piece_endpoints: list[dict[str, object]] = []
         for piece_idx, piece_proj in enumerate(oriented_pieces):
             piece_wgs84 = transform(PROJ_3081_TO_WGS84.transform, piece_proj)
 
@@ -3892,6 +3912,21 @@ def process_request_row(
             piece_tos.append(p_to.value if p_to else "")
             piece_heuristic_froms.append(p_from.heuristic if p_from else "")
             piece_heuristic_tos.append(p_to.heuristic if p_to else "")
+            piece_confidence_froms.append(p_from.confidence if p_from else 0.0)
+            piece_confidence_tos.append(p_to.confidence if p_to else 0.0)
+            gap_piece_endpoints.append(
+                {
+                    "piece": piece_idx + 1,
+                    "from_wgs84": point_to_lon_lat(p_start_wgs84),
+                    "to_wgs84": point_to_lon_lat(p_end_wgs84),
+                    "from_limit": p_from.value if p_from else "",
+                    "to_limit": p_to.value if p_to else "",
+                    "from_confidence": p_from.confidence if p_from else 0.0,
+                    "to_confidence": p_to.confidence if p_to else 0.0,
+                    "from_heuristic": p_from.heuristic if p_from else "",
+                    "to_heuristic": p_to.heuristic if p_to else "",
+                }
+            )
             piece_notes.append(
                 f"piece{piece_idx + 1}: {describe_candidate('from', p_from)}; {describe_candidate('to', p_to)}"
             )
@@ -3928,6 +3963,15 @@ def process_request_row(
             status="",
             note="; ".join(piece_notes + [gap_detail, f"resolved_features={', '.join(feature.segment_id for feature in features)}"]),
             processing_time_s=round(elapsed_s, 3),
+            from_endpoint_wgs84=(
+                gap_piece_endpoints[0]["from_wgs84"] if gap_piece_endpoints else None
+            ),
+            to_endpoint_wgs84=(
+                gap_piece_endpoints[-1]["to_wgs84"] if gap_piece_endpoints else None
+            ),
+            confidence_from=piece_confidence_froms[0] if piece_confidence_froms else 0.0,
+            confidence_to=piece_confidence_tos[-1] if piece_confidence_tos else 0.0,
+            gap_piece_endpoints=gap_piece_endpoints,
         )
 
     # --- Continuous segment (no gap) ---
@@ -4008,6 +4052,10 @@ def process_request_row(
             ]
         ),
         processing_time_s=round(elapsed_s, 3),
+        from_endpoint_wgs84=point_to_lon_lat(start_endpoint_wgs84),
+        to_endpoint_wgs84=point_to_lon_lat(end_endpoint_wgs84),
+        confidence_from=from_candidate.confidence if from_candidate is not None else 0.0,
+        confidence_to=to_candidate.confidence if to_candidate is not None else 0.0,
     )
 
 
@@ -4156,6 +4204,36 @@ def verify_limits(
     dataframe["Auto Limits To"] = [result.auto_to for result in ordered_results]
     dataframe["Heuristic-From"] = [result.heuristic_from for result in ordered_results]
     dataframe["Heuristic-To"] = [result.heuristic_to for result in ordered_results]
+    dataframe["From Endpoint Lon"] = [
+        result.from_endpoint_wgs84[0] if result.from_endpoint_wgs84 is not None else None
+        for result in ordered_results
+    ]
+    dataframe["From Endpoint Lat"] = [
+        result.from_endpoint_wgs84[1] if result.from_endpoint_wgs84 is not None else None
+        for result in ordered_results
+    ]
+    dataframe["To Endpoint Lon"] = [
+        result.to_endpoint_wgs84[0] if result.to_endpoint_wgs84 is not None else None
+        for result in ordered_results
+    ]
+    dataframe["To Endpoint Lat"] = [
+        result.to_endpoint_wgs84[1] if result.to_endpoint_wgs84 is not None else None
+        for result in ordered_results
+    ]
+    dataframe["Confidence-From"] = [result.confidence_from for result in ordered_results]
+    dataframe["Confidence-To"] = [result.confidence_to for result in ordered_results]
+    dataframe["Confidence-Bucket-From"] = [
+        confidence_bucket(result.confidence_from) for result in ordered_results
+    ]
+    dataframe["Confidence-Bucket-To"] = [
+        confidence_bucket(result.confidence_to) for result in ordered_results
+    ]
+    dataframe["Gap Piece Endpoints"] = [
+        json.dumps(result.gap_piece_endpoints, ensure_ascii=True)
+        if result.gap_piece_endpoints
+        else ""
+        for result in ordered_results
+    ]
     dataframe["Segment-Direction"] = [result.segment_direction for result in ordered_results]
     dataframe["Segment-Type"] = [result.segment_type for result in ordered_results]
     if compare_mode:

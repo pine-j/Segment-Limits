@@ -81,11 +81,9 @@ def all_side_specs(review_df: pd.DataFrame) -> list[dict[str, str]]:
     sides: list[dict[str, str]] = []
     for row in review_df.to_dict("records"):
         # Skip gap segments — they use piece-by-piece limits, not simple From/To
-        segment_type = str(row.get("Segment-Type", "")).strip()
-        if segment_type == "Gap":
-            continue
         amy_from = str(row.get("Limts-From", "")).strip()
         amy_to = str(row.get("Limits-To", "")).strip()
+        # Amy records only the overall segment limits, so gap interiors stay unscored.
         if amy_from and amy_from != "nan":
             sides.append(
                 {"segment": str(row["Segment"]), "side": "From", "gold": amy_from}
