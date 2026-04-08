@@ -9,6 +9,11 @@ end. Do not run Phases 6–8 unless the user explicitly asks.
 For full architecture, schemas, and design rationale, refer to
 `Project-Plan/master-plan.md`.
 
+**Do NOT read files in `Project-Plan/archive/`** — those are outdated
+design-phase documents that describe a different architecture (e.g.,
+Playwright MCP for screenshots). They exist only for case study reference.
+This file and `Project-Plan/master-plan.md` are the current sources of truth.
+
 ## Input
 
 **Default**: `FTW-Segments-Limits-Amy.review.csv` (all segments)
