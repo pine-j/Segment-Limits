@@ -466,6 +466,11 @@ require([
 
   }
 
+  // Expose internals for batch screenshot automation
+  window.__segments_state = state;
+  window.__render = render;
+  window.__syncSelectedGraphics = syncSelectedGraphics;
+
   window.__waitForSegments = function () {
     return view.when().then(() => {
       return new Promise((resolve) => {
@@ -492,6 +497,55 @@ require([
     await syncSelectedGraphics();
     await zoomToSegments([match.objectId]);
     return true;
+  };
+
+  window.__waitForTiles = function (timeout) {
+    timeout = timeout || 15000;
+    return new Promise(function (resolve) {
+      if (!view.updating) { resolve(true); return; }
+      var settled = false;
+      var handle = view.watch("updating", function (updating) {
+        if (!updating && !settled) {
+          settled = true;
+          handle.remove();
+          resolve(true);
+        }
+      });
+      setTimeout(function () {
+        if (!settled) {
+          settled = true;
+          handle.remove();
+          resolve(false);
+        }
+      }, timeout);
+    });
+  };
+
+  window.__captureView = async function (width, height) {
+    await window.__waitForTiles(15000);
+    var screenshot = await view.takeScreenshot({
+      width: width || 1920,
+      height: height || 1080,
+      format: "png",
+    });
+    return screenshot.dataUrl;
+  };
+
+  window.__navigateAndCapture = async function (segmentName, lon, lat, closeZoom, contextZoom) {
+    closeZoom = closeZoom || 17;
+    contextZoom = contextZoom || 15;
+
+    await window.__selectAndZoomSegment(segmentName);
+
+    await view.goTo({ center: [lon, lat], zoom: closeZoom }, { animate: false });
+    await window.__waitForTiles(15000);
+    var closeImg = await view.takeScreenshot({ width: 1920, height: 1080, format: "png" });
+
+    await view.goTo({ center: [lon, lat], zoom: contextZoom }, { animate: false });
+    await window.__waitForTiles(15000);
+    var contextImg = await view.takeScreenshot({ width: 1920, height: 1080, format: "png" });
+
+    return { close: closeImg.dataUrl, context: contextImg.dataUrl };
   };
 
   function dedupeRoadResults(features) {

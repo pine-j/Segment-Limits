@@ -60,7 +60,30 @@ The heuristic script is strong but not complete. Known failure modes include:
 The visual pass reads the rendered map, which exposes clues the data-driven
 heuristic cannot reliably infer.
 
-## CRITICAL: Visual review independence
+## HARD REQUIREMENTS — violations invalidate the entire run
+
+### 1. Playwright MCP is mandatory
+
+Phase 3 requires Playwright MCP to take real screenshots of the web app. If
+Playwright MCP is unavailable, blocked, misconfigured, or returns errors:
+
+- **STOP the pipeline immediately.**
+- Report the exact error to the user.
+- Do NOT work around it. Do NOT write automation scripts, browser_run_code
+  hacks, fetch-and-eval workarounds, or any other substitute.
+- Do NOT generate visual review results without actual screenshots. Results
+  produced without Playwright MCP screenshots are fabricated data and will
+  corrupt the pipeline.
+- Wait for the user to fix the Playwright MCP issue before resuming.
+
+### 2. Every visual result must have real screenshots
+
+Each endpoint in a batch result JSON must have corresponding screenshot files
+on disk (`_temp/visual-review/screenshots/batch-NN-ep-MM-close.png` and
+`-context.png`). If a sub-agent produces a results JSON but the screenshot
+files do not exist, that batch is invalid — delete the results and re-run it.
+
+### 3. Visual review independence
 
 Visual Review sub-agents must never see heuristic answers.
 
@@ -68,11 +91,19 @@ Visual Review sub-agents must never see heuristic answers.
   `_temp/visual-review/batch-prompts/batch-NN.md`) and Playwright MCP access
 - Do NOT include `heuristic-results.csv` or any heuristic output in their context
 - Do NOT mention heuristic findings when dispatching them
+- Do NOT read heuristic files during Phase 3, even as the orchestrator
 
 The batch prompts contain only coordinates and navigation instructions — no
 heuristic answers. This ensures the visual pass is an independent check, not a
 confirmation of what the heuristic already said. Context isolation makes bias
 impossible, not just inadvisable.
+
+### 4. No fabrication
+
+If any phase fails for any reason, stop and report. Do not generate synthetic
+or placeholder data to keep the pipeline moving. Every data file in this
+pipeline must come from either a Python script execution or a real Playwright
+MCP browser session — never from the LLM inventing plausible values.
 
 ## Workflow
 
@@ -142,6 +173,13 @@ For each batch prompt file in `_temp/visual-review/batch-prompts/`:
      and context screenshots, record visual assessment
    - Write structured JSON to
      `_temp/visual-review/batch-results/batch-NN-results.json`
+
+**After each sub-agent completes**, verify that the screenshot files it
+references actually exist on disk before accepting its results. For each
+entry in the batch JSON, check that both
+`_temp/visual-review/screenshots/batch-NN-ep-MM-close.png` and
+`batch-NN-ep-MM-context.png` are present and non-empty. If any are missing,
+the sub-agent failed silently — delete the batch results JSON and re-run it.
 
 **Run sub-agents in waves of 3–5 batches at a time**, not all at once. Each
 sub-agent needs its own Playwright browser session, navigates to multiple
