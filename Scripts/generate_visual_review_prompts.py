@@ -195,7 +195,7 @@ A limit is almost NEVER a local residential street name. Local streets go in
 `limit_alias`, not `limit_identification`.
 
 **Priority order for `limit_identification`:**
-1. County boundary line (if the endpoint sits on a color-change boundary)
+1. County boundary line (if an amber boundary line is visible at the endpoint)
 2. Interstate highway (IH) crossing or interchange
 3. US highway crossing
 4. State highway (SH) crossing
@@ -241,8 +241,9 @@ TxDOT says is at the endpoint. Look at the `roads_within_50m` list first:
   Step 1?
 - Is there an interchange visible (circular ramps)? The major route at the
   interchange is the limit.
-- Is there a basemap color change at the endpoint? That indicates a county
-  boundary, which takes priority.
+- Is there an amber county boundary line at the endpoint? County boundaries
+  are rendered as distinct amber lines with county name labels — this takes
+  priority over other limits.
 - Does the segment end between intersections? That's an offset.
 
 **Step 3 — Determine the limit** by combining both sources:
@@ -254,9 +255,10 @@ TxDOT says is at the endpoint. Look at the `roads_within_50m` list first:
 - **Road query at 50m is empty, 200m shows a highway** → offset situation.
   The limit is "N/S/E/W of [highway]". Use the screenshots to determine
   the compass direction.
-- **County boundary visible in screenshots** → use "[County] County Line"
-  as the limit. The road query may show roads from both counties (check the
-  `county` field to confirm the boundary).
+- **Amber county boundary line visible in screenshots** → use "[County]
+  County Line" as the limit. The boundary is rendered as a distinct amber
+  line with a county name label. The road query may show roads from both
+  counties (check the `county` field to confirm the boundary).
 - **Multiple highways at the endpoint** → use the screenshots to determine
   which one the segment line actually meets. The road query tells you the
   names; the screenshots tell you which road is at the endpoint.

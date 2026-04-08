@@ -91,9 +91,9 @@ and the heuristic picks the local name instead of the route designation.
 
 ### Scenario 3: County boundary
 
-**What you see**: the basemap background color changes at the endpoint.
-There may be a thin administrative line. The road query may show roads from
-two different counties.
+**What you see**: an amber county boundary line crosses the endpoint area,
+with a county name label (e.g., "Johnson County") displayed alongside it.
+The road query may show roads from two different counties.
 
 **How to determine**: check the `county` field in the road query results.
 If roads on one side are "Tarrant" and the other side are "Johnson", the
@@ -107,17 +107,19 @@ endpoint is at the Tarrant / Johnson County Line.
   "Tarrant / Johnson County Line".
 - `county_boundary_at_endpoint`: true
 - `is_offset`: false
-- `visual_confidence`: "high" if color change is clear; "medium" if subtle
+- `visual_confidence`: "high" if the amber boundary line is visible; "medium" if
+  only road query county fields differ and no boundary line is visible
 
-**Example**: US 287 - A ends where the basemap changes from green (Tarrant)
-to pink (Johnson). The limit is "Johnson County Line".
+**Example**: US 287 - A ends where the amber county boundary line crosses
+the road. The label reads "Johnson County". The limit is "Johnson County
+Line".
 
 **Known heuristic weakness**: the heuristic detects county boundaries
 geometrically (distance from endpoint to county polygon boundary). It can
 miss boundaries when the endpoint is slightly offset from the exact
 boundary line, or when the county polygon data has alignment errors. The
-visual color change in the basemap is often a more reliable indicator than
-the geometric distance calculation.
+amber county boundary line rendered on the map is a more reliable visual
+indicator than the geometric distance calculation.
 
 ---
 
@@ -272,7 +274,7 @@ limit.
 1. Check all three query radii (50m, 200m, 500m) in the roads.json — the
    wider radii may reveal a highway that was outside the initial search
 2. Use the context screenshot (zoom 15) for clues about the broader road
-   network — interchanges, county color changes, highway shields
+   network — interchanges, amber county boundary lines, highway shields
 3. Cross-reference what you see in the screenshots with the road query data
 4. Make the best determination possible and document the uncertainty
 
